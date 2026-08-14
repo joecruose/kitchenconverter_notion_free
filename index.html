@@ -138,24 +138,15 @@
     .pan-use  { font-size: 10px; font-weight: 600; color: var(--text-muted); font-style: italic; }
 
     /* ── PAYWALL LOCK OVERLAY ────────────────────────────────────────────── */
-    .locked-container {
-      position: relative; width: 100%; height: 100%; display: flex; 
-      flex-direction: column; text-decoration: none; border-radius: 11px; overflow: hidden;
-    }
-    .blurred-content {
-      width: 100%; height: 100%; filter: blur(6px); opacity: 0.5;
-      pointer-events: none; user-select: none; transition: opacity 0.3s ease;
-    }
-    .upgrade-overlay {
-      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      gap: 12px; color: var(--text-main); opacity: 0.9;
-      transition: opacity 0.3s ease, transform 0.2s ease;
-    }
-    .upgrade-overlay svg { width: 28px; height: 28px; fill: currentColor; }
-    .upgrade-overlay span { font-size: 14px; font-weight: 700; font-family: var(--font-ui); background: var(--text-main); color: var(--block-bg); padding: 8px 16px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); transition: transform 0.2s; }
-    .locked-container:hover .blurred-content { opacity: 0.2; }
-    .locked-container:active .upgrade-overlay span { transform: scale(0.95); }
+    .paywall-container { position: relative; flex: 1; display: flex; flex-direction: column; overflow: hidden; border-radius: 14px; text-decoration: none; margin-top: 8px;}
+    .blurred-paywall-content { filter: blur(6px); opacity: 0.55; user-select: none; pointer-events: none; }
+    .paywall-overlay { position: absolute; inset: 0; background: color-mix(in srgb, var(--block-bg) 75%, transparent); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 16px; text-align: center; backdrop-filter: blur(3px); border-radius: 14px; transition: background 0.2s ease; }
+    .paywall-container:hover .paywall-overlay { background: color-mix(in srgb, var(--block-bg) 85%, transparent); }
+    .paywall-icon { width: 40px; height: 40px; border-radius: 50%; background: var(--s2); display: flex; align-items: center; justify-content: center; color: var(--text-main); transition: transform 0.2s ease;}
+    .paywall-container:active .paywall-icon { transform: scale(0.95); }
+    .paywall-icon svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .paywall-title { font-size: 13px; font-weight: 700; color: var(--text-main); }
+    .paywall-sub { font-size: 11px; font-weight: 500; color: var(--text-muted); line-height: 1.35; }
 
   </style>
 </head>
@@ -546,15 +537,18 @@ function populateGuide(tabId) {
   ).join('')}</div>`;
 
   el.innerHTML = `
-    <a href="https://joecruose.gumroad.com/l/kitchenconverter_widget" target="_blank" class="locked-container" title="Unlock Pro Features">
-      <div class="blurred-content">
+    <a href="https://joecruose.gumroad.com/l/kitchenconverter_widget" target="_blank" class="paywall-container" title="Unlock Pro Features">
+      <div class="blurred-paywall-content">
         ${blurredHTML}
         <br>
         ${blurredHTML}
       </div>
-      <div class="upgrade-overlay">
-        <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-        <span>Unlock Pro Guide</span>
+      <div class="paywall-overlay">
+        <div class="paywall-icon">
+          <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0110 0v4"></path></svg>
+        </div>
+        <div class="paywall-title">Unlock Pro Guide</div>
+        <div class="paywall-sub">Upgrade to Kitchen Converter Pro to unlock the full cooking guide.</div>
       </div>
     </a>`;
 }
