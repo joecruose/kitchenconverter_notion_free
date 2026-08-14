@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kitchen Converter | Free</title>
+  <meta name="description" content="A lightweight kitchen unit converter Notion widget.">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Oswald:wght@700&display=swap" rel="stylesheet">
+
+  <style>
+    /* ── DEFAULT TOKENS (Overridden by URL Params) ──────────────────────── */
+    :root {
+      --page-bg:      transparent;
+      --block-bg:     #55534e;
+      --block-border: #4a4843;
+      --text-main:    #FFFFFF;
+      --text-muted:   rgba(255,255,255,0.4);
+      --accent:       #FFFFFF;
+      --accent-text:  #55534e;
+      --font-ui:      'Inter', -apple-system, sans-serif;
+      --font-num:     'Oswald', sans-serif;
+      --s1:           rgba(255,255,255,0.05);
+      --s2:           rgba(255,255,255,0.09);
+      --sh:           rgba(255,255,255,0.14);
+      --sp:           cubic-bezier(0.25, 1, 0.5, 1);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      width: 100%; height: 100%; background: var(--page-bg);
+      display: flex; justify-content: center; align-items: center;
+      font-family: var(--font-ui); -webkit-font-smoothing: antialiased;
+      transition: background-color 0.3s ease;
+    }
+
+    /* ── WIDGET SHELL ────────────────────────────────────────────────────── */
+    .widget {
+      background: var(--block-bg); border: 1px solid var(--block-border);
+      border-radius: 20px; width: 460px; height: 490px; display: flex;
+      flex-direction: column; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.25);
+      position: relative; transition: all 0.3s ease;
+    }
+    .widget * { transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease; }
+
+    /* ── HEADER ──────────────────────────────────────────────────────────── */
+    .wh { padding: 20px 20px 0; display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+    .btn-icon {
+      background: none; border: none; color: var(--text-muted); width: 28px; height: 28px;
+      border-radius: 8px; display: flex; align-items: center; justify-content: center;
+      cursor: pointer; overflow: hidden; flex-shrink: 0;
+      transition: width 0.26s var(--sp), opacity 0.22s ease, background 0.18s ease;
+    }
+    .btn-icon:hover  { background: var(--sh); color: var(--text-main); }
+    .btn-icon:active { transform: scale(0.88); }
+    .btn-icon svg { width: 15px; height: 15px; fill: currentColor; flex-shrink: 0; }
+    .btn-icon.hidden { width: 0; opacity: 0; pointer-events: none; }
+    .wh-title { font-size: 13px; font-weight: 800; color: var(--text-main); text-transform: uppercase; letter-spacing: 0.6px; flex: 1; }
+
+    /* ── TAB BAR ─────────────────────────────────────────────────────────── */
+    .tabs { padding: 14px 20px 0; flex-shrink: 0; }
+    .tabs-inner { position: relative; display: flex; background: rgba(0,0,0,0.18); border-radius: 11px; padding: 4px; }
+    .tab-slider { position: absolute; top: 4px; bottom: 4px; left: 0; width: 0; background: var(--accent); border-radius: 7px; transition: transform 0.36s var(--sp), width 0.36s var(--sp); z-index: 0; pointer-events: none; }
+    .tab { flex: 1; position: relative; z-index: 1; background: transparent; border: none; color: var(--text-muted); padding: 7px 0; font-family: var(--font-ui); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px; cursor: pointer; transition: color 0.22s ease; white-space: nowrap; }
+    .tab:hover  { color: rgba(255,255,255,0.65); }
+    .tab.active { color: var(--accent-text); cursor: default; }
+
+    /* ── CONTENT ─────────────────────────────────────────────────────────── */
+    .content { flex: 1; position: relative; overflow: hidden; }
+    .view { position: absolute; inset: 0; padding: 16px 20px 18px; display: flex; flex-direction: column; gap: 12px; overflow: hidden; opacity: 0; pointer-events: none; transform: translateY(5px); transition: opacity 0.26s var(--sp), transform 0.26s var(--sp); }
+    .view.active { opacity: 1; pointer-events: all; transform: translateY(0); }
+    .view.guide { transform: translateX(20px); }
+    .view.guide.active { transform: translateX(0); }
+    .lbl { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); flex-shrink: 0; }
+
+    /* ── SELECT ──────────────────────────────────────────────────────────── */
+    select { width: 100%; background: var(--s1); border: 1px solid transparent; color: var(--text-main); border-radius: 10px; padding: 9px 28px 9px 11px; font-family: var(--font-ui); font-size: 12px; font-weight: 600; outline: none; cursor: pointer; appearance: none; color-scheme: dark; transition: background 0.16s ease, border-color 0.16s ease; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='9' height='5'%3E%3Cpath d='M0 0l4.5 5L9 0z' fill='rgba(255,255,255,0.22)'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; }
+    select option { background: #1c1a19; color: #fff; }
+    select:focus  { border-color: rgba(255,255,255,0.13); background-color: var(--s2); }
+
+    /* ── UNIT ROW ────────────────────────────────────────────────────────── */
+    .unit-row { display: grid; grid-template-columns: 1fr 34px 1fr; gap: 6px; align-items: end; flex-shrink: 0; }
+    .unit-col { display: flex; flex-direction: column; gap: 4px; }
+    .swap-btn { background: var(--s1); border: 1px solid var(--block-border); color: var(--text-muted); height: 36px; border-radius: 9px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.28s var(--sp); }
+    .swap-btn:hover  { background: var(--sh); color: var(--text-main); transform: rotate(180deg); }
+    .swap-btn:active { transform: scale(0.86) rotate(180deg); }
+    .swap-btn svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+    /* ── IO BOXES ────────────────────────────────────────────────────────── */
+    .io-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; flex-shrink: 0; }
+    .io-box { background: var(--s1); border: 1px solid transparent; border-radius: 13px; padding: 13px 13px 11px; display: flex; flex-direction: column; gap: 3px; transition: border-color 0.18s ease, background 0.18s ease; }
+    .io-box.lit { border-color: rgba(255,255,255,0.12); background: var(--s2); }
+    .io-box input { background: transparent; border: none; color: var(--text-main); font-family: var(--font-num); font-size: 36px; font-weight: 700; width: 100%; outline: none; padding: 0; font-variant-numeric: tabular-nums; -moz-appearance: textfield; }
+    .io-box input::-webkit-outer-spin-button, .io-box input::-webkit-inner-spin-button { -webkit-appearance: none; }
+    .out-val { font-family: var(--font-num); font-size: 36px; font-weight: 700; color: var(--text-main); font-variant-numeric: tabular-nums; line-height: 1.05; word-break: break-all; }
+    .out-val.flash { animation: vf 0.2s ease; }
+    @keyframes vf { from { opacity: 0.28; transform: scale(0.93); } to   { opacity: 1;    transform: scale(1); } }
+
+    /* ── QUICK PILLS ─────────────────────────────────────────────────────── */
+    .pills { display: flex; gap: 5px; flex-wrap: wrap; flex-shrink: 0; }
+    .pill { background: var(--s1); border: 1px solid transparent; color: var(--text-muted); padding: 5px 10px; border-radius: 7px; font-size: 11px; font-weight: 700; cursor: pointer; white-space: nowrap; transition: all 0.18s var(--sp); }
+    .pill:hover  { background: var(--sh); color: var(--text-main); }
+    .pill:active { transform: scale(0.9); }
+
+    /* ── GUIDE BUTTON ────────────────────────────────────────────────────── */
+    .guide-btn { margin-top: auto; background: var(--s1); border: 1px solid var(--block-border); color: var(--text-muted); border-radius: 10px; padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; font-size: 12px; font-weight: 700; font-family: var(--font-ui); transition: all 0.2s var(--sp); flex-shrink: 0; }
+    .guide-btn:hover  { background: var(--s2); color: var(--text-main); }
+    .guide-btn:active { transform: scale(0.97); }
+    .guide-btn svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+
+    /* ── TEMPERATURE ─────────────────────────────────────────────────────── */
+    .t-badges { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; flex-shrink: 0; }
+    .t-badge { background: var(--s1); border-radius: 12px; padding: 13px 13px 11px; display: flex; flex-direction: column; gap: 3px; }
+    .t-val { font-family: var(--font-num); font-size: 30px; font-weight: 700; color: var(--text-main); font-variant-numeric: tabular-nums; }
+    .t-val.flash { animation: vf 0.2s ease; }
+
+    /* ── PANS & GUIDE PANELS ─────────────────────────────────────────────── */
+    .pan-scroll, .ref-scroll { flex: 1; overflow-y: auto; scrollbar-width: none; border-radius: 11px; }
+    .pan-scroll::-webkit-scrollbar, .ref-scroll::-webkit-scrollbar { display: none; }
+    .ref-scroll { mask-image: linear-gradient(to bottom, black 80%, transparent 100%); -webkit-mask-image: linear-gradient(to bottom, black 80%, transparent 100%); }
+    .ref-scroll.no-fade { mask-image: none; -webkit-mask-image: none; }
+    .ref-table { background: var(--s1); border-radius: 11px; overflow: hidden; }
+    .ref-row { display: flex; align-items: center; justify-content: space-between; padding: 9px 13px; border-bottom: 1px solid var(--block-border); transition: background 0.13s ease; }
+    .ref-row:last-child { border-bottom: none; }
+    .ref-l { font-size: 11px; font-weight: 600; color: var(--text-muted); }
+    .ref-r { font-size: 11px; font-weight: 700; color: var(--text-main); font-variant-numeric: tabular-nums; }
+    
+    .pan-row { padding: 9px 13px; border-bottom: 1px solid var(--block-border); }
+    .pan-row:last-child { border-bottom: none; }
+    .pan-top { display: flex; justify-content: space-between; align-items: baseline; }
+    .pan-name { font-size: 12px; font-weight: 700; color: var(--text-main); }
+    .pan-vol  { font-size: 10px; font-weight: 700; color: var(--text-muted); }
+    .pan-bot  { display: flex; justify-content: space-between; margin-top: 2px; }
+    .pan-dim  { font-size: 10px; font-weight: 600; color: var(--text-muted); }
+    .pan-use  { font-size: 10px; font-weight: 600; color: var(--text-muted); font-style: italic; }
+
+    /* ── PAYWALL LOCK OVERLAY ────────────────────────────────────────────── */
+    .locked-container {
+      position: relative; width: 100%; height: 100%; display: flex; 
+      flex-direction: column; text-decoration: none; border-radius: 11px; overflow: hidden;
+    }
+    .blurred-content {
+      width: 100%; height: 100%; filter: blur(6px); opacity: 0.5;
+      pointer-events: none; user-select: none; transition: opacity 0.3s ease;
+    }
+    .upgrade-overlay {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 12px; color: var(--text-main); opacity: 0.9;
+      transition: opacity 0.3s ease, transform 0.2s ease;
+    }
+    .upgrade-overlay svg { width: 28px; height: 28px; fill: currentColor; }
+    .upgrade-overlay span { font-size: 14px; font-weight: 700; font-family: var(--font-ui); background: var(--text-main); color: var(--block-bg); padding: 8px 16px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); transition: transform 0.2s; }
+    .locked-container:hover .blurred-content { opacity: 0.2; }
+    .locked-container:active .upgrade-overlay span { transform: scale(0.95); }
+
+  </style>
+</head>
+<body>
+<div class="widget">
+
+  <!-- HEADER -->
+  <div class="wh">
+    <button class="btn-icon hidden" id="back-btn" onclick="closeSubview()" aria-label="Back">
+      <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+    </button>
+    <span class="wh-title" id="wh-title">Kitchen Converter</span>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <div class="tabs-inner">
+      <div class="tab-slider" id="tab-slider"></div>
+      <button class="tab active" id="tab-weight" onclick="setTab('weight')">Weight</button>
+      <button class="tab"        id="tab-volume" onclick="setTab('volume')">Volume</button>
+      <button class="tab"        id="tab-temp"   onclick="setTab('temp')">Temp</button>
+      <button class="tab"        id="tab-length" onclick="setTab('length')">Length</button>
+      <button class="tab"        id="tab-pans"   onclick="setTab('pans')">Pans</button>
+    </div>
+  </div>
+
+  <!-- VIEWS -->
+  <div class="content">
+    <div class="view active" id="view-weight"></div>
+    <div class="view"        id="view-volume"></div>
+    <div class="view"        id="view-temp"></div>
+    <div class="view"        id="view-length"></div>
+    <div class="view"        id="view-pans"></div>
+    <div class="view guide"  id="view-guide"></div>
+  </div>
+</div>
+
+<script>
+/* ════════════════════════════════════════════════════════════════════════
+   THEME SETUP (From URL Params)
+═══════════════════════════════════════════════════════════════════════ */
+const notionColors = [
+  { l: '55534e', d: 'd4d4d4' }, { l: 'a6a299', d: '7f7f7f' }, { l: '9f6b53', d: 'ac775f' },
+  { l: 'cb912f', d: 'c98c1d' }, { l: 'd9730d', d: 'd9771e' }, { l: '448361', d: '2a9961' },
+  { l: '337ea9', d: '277be5' }, { l: '9065b0', d: '8f5cc1' }, { l: 'c14c8a', d: 'c74177' },
+  { l: 'd44c47', d: 'cc4745' }
+];
+
+(function() {
+  const p = new URLSearchParams(window.location.search);
+  const t = parseInt(p.get('t')); 
+  const m = p.get('m'); 
+  const c = p.get('c'); 
+  const r = document.documentElement.style;
+
+  if (!isNaN(t) && t >= 0 && t < notionColors.length) {
+    const hex = m === 'd' ? notionColors[t].d : notionColors[t].l;
+    const textHex = c === 'b' ? '272727' : 'FFFFFF';
+    
+    r.setProperty('--block-bg',     `#${hex}`);
+    r.setProperty('--text-main',    `#${textHex}`);
+    r.setProperty('--accent',       `#${textHex}`);
+    r.setProperty('--accent-text',  `#${hex}`);
+    r.setProperty('--text-muted',   `color-mix(in srgb, #${textHex} 40%, #${hex})`);
+    r.setProperty('--block-border', `color-mix(in srgb, #${textHex} 13%, #${hex})`);
+    r.setProperty('--s1',           `color-mix(in srgb, #${textHex}  5%, #${hex})`);
+    r.setProperty('--s2',           `color-mix(in srgb, #${textHex} 10%, #${hex})`);
+    r.setProperty('--sh',           `color-mix(in srgb, #${textHex} 17%, #${hex})`);
+  }
+
+  if (m === 'd' || p.get('theme') === 'dark') {
+    r.setProperty('--page-bg', '#191919');
+  } else {
+    r.setProperty('--page-bg', 'transparent');
+  }
+})();
+
+/* ════════════════════════════════════════════════════════════════════════
+   FREE VERSION UNIT DATA (Trimmed)
+═══════════════════════════════════════════════════════════════════════ */
+const DATA = {
+  weight: {
+    units: [
+      { id:'g',      lbl:'Grams (g)',          short:'g',          b:1        },
+      { id:'kg',     lbl:'Kilograms (kg)',      short:'kg',         b:1000     },
+      { id:'oz',     lbl:'Ounces (oz)',         short:'oz',         b:28.3495  },
+      { id:'lb',     lbl:'Pounds (lb)',         short:'lb',         b:453.592  },
+      { id:'cup',    lbl:'Cup (Standard)',      short:'cup',        b:240      }
+    ],
+    from:'oz', to:'g'
+  },
+  volume: {
+    units: [
+      { id:'ml',      lbl:'Milliliters (ml)',     short:'ml',      b:1        },
+      { id:'l',       lbl:'Liters (L)',            short:'L',       b:1000     },
+      { id:'tsp',     lbl:'Teaspoon (tsp)',        short:'tsp',     b:4.929    },
+      { id:'tbsp',    lbl:'Tablespoon (tbsp)',     short:'tbsp',    b:14.787   },
+      { id:'fl_oz',   lbl:'Fluid oz (fl oz)',     short:'fl oz',   b:29.574   },
+      { id:'cup',     lbl:'Cup (cup)',             short:'cup',     b:236.588  }
+    ],
+    from:'cup', to:'ml'
+  },
+  length: {
+    units: [
+      { id:'mm', lbl:'Millimeters (mm)', short:'mm', b:1      },
+      { id:'cm', lbl:'Centimeters (cm)', short:'cm', b:10     },
+      { id:'in', lbl:'Inches (in)',      short:'in', b:25.4   },
+      { id:'ft', lbl:'Feet (ft)',        short:'ft', b:304.8  },
+    ],
+    from:'in', to:'cm'
+  },
+};
+
+const DYNAMIC_PILLS = {
+  weight: {
+    oz: [{l:'1 oz', v:1}, {l:'4 oz', v:4}, {l:'8 oz', v:8}, {l:'16 oz', v:16}],
+    g:  [{l:'50 g', v:50}, {l:'100 g', v:100}, {l:'250 g', v:250}, {l:'500 g', v:500}],
+    kg: [{l:'0.5 kg', v:0.5}, {l:'1 kg', v:1}, {l:'2 kg', v:2}],
+    lb: [{l:'¼ lb', v:0.25}, {l:'½ lb', v:0.5}, {l:'1 lb', v:1}],
+  },
+  volume: {
+    ml:   [{l:'50 ml', v:50}, {l:'100 ml', v:100}, {l:'250 ml', v:250}, {l:'500 ml', v:500}],
+    l:    [{l:'0.5 L', v:0.5}, {l:'1 L', v:1}, {l:'2 L', v:2}],
+    cup:  [{l:'¼ cup', v:0.25}, {l:'½ cup', v:0.5}, {l:'1 cup', v:1}, {l:'2 cups', v:2}],
+    tbsp: [{l:'1 tbsp', v:1}, {l:'2 tbsp', v:2}, {l:'4 tbsp', v:4}],
+  },
+  length: {
+    cm: [{l:'5 cm', v:5}, {l:'10 cm', v:10}, {l:'20 cm', v:20}, {l:'30 cm', v:30}],
+    in: [{l:'6 in', v:6}, {l:'8 in', v:8}, {l:'12 in', v:12}],
+  }
+};
+
+const PANS = [
+  { n:'Round 8"',      us:'8 in',      cm:'20 cm',      vol:'6 cups',    use:'Layer cakes, pies'        },
+  { n:'Square 8"',     us:'8×8 in',    cm:'20×20 cm',   vol:'8 cups',    use:'Brownies, bars'           },
+  { n:'Rect 9×13"',    us:'9×13 in',   cm:'23×33 cm',   vol:'15 cups',   use:'Casseroles, sheets'       },
+  { n:'Loaf 9×5"',     us:'9×5 in',    cm:'23×13 cm',   vol:'8 cups',    use:'Sandwich bread'           },
+];
+
+/* ════════════════════════════════════════════════════════════════════════
+   STATE & NAVIGATION
+═══════════════════════════════════════════════════════════════════════ */
+let currentTab  = 'weight';
+let subviewOpen = false;
+
+function updateSlider() {
+  const activeTab = document.querySelector('.tab.active');
+  const slider = document.getElementById('tab-slider');
+  if (activeTab && slider) {
+    slider.style.width = activeTab.offsetWidth + 'px';
+    slider.style.transform = `translateX(${activeTab.offsetLeft}px)`;
+  }
+}
+
+function setTab(name) {
+  if (subviewOpen) closeSubview();
+  if (name === currentTab) return;
+  currentTab = name;
+
+  document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+
+  updateSlider();
+
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('view-' + name).classList.add('active');
+
+  setHeader(false);
+}
+
+function openGuide() {
+  subviewOpen = true;
+  populateGuide(currentTab);
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('view-guide').classList.add('active');
+  setHeader(true);
+}
+
+function closeSubview() {
+  subviewOpen = false;
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('view-' + currentTab).classList.add('active');
+  setHeader(false);
+}
+
+function setHeader(subview) {
+  const title = document.getElementById('wh-title');
+  const back  = document.getElementById('back-btn');
+  if (subview) {
+    const names = { weight:'Weight', volume:'Volume', temp:'Temperature', length:'Length', pans:'Pans' };
+    title.textContent = names[currentTab] || 'Guide';
+    back.classList.remove('hidden');
+  } else {
+    title.textContent = 'Kitchen Converter';
+    back.classList.add('hidden');
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   HELPERS
+═══════════════════════════════════════════════════════════════════════ */
+function fmt(v) {
+  if (isNaN(v)||!isFinite(v)) return '—';
+  const a = Math.abs(v);
+  if (a === 0)      return '0';
+  if (a >= 10000)   return v.toLocaleString('en',{maximumFractionDigits:1});
+  if (a >= 100)     return v.toLocaleString('en',{maximumFractionDigits:2});
+  if (a >= 1)       return v.toLocaleString('en',{maximumFractionDigits:3});
+  if (a >= 0.001)   return v.toLocaleString('en',{maximumFractionDigits:4});
+  return v.toExponential(3);
+}
+
+function abbr(catId, unitId) {
+  const u = (DATA[catId]?.units||[]).find(u => u.id === unitId);
+  return u ? u.short : '';
+}
+
+function makeSel(id, units, defVal) {
+  return `<select id="${id}">${units.map(u =>
+    `<option value="${u.id}"${u.id===defVal?' selected':''}>${u.lbl}</option>`
+  ).join('')}</select>`;
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   STANDARD CONVERTER
+═══════════════════════════════════════════════════════════════════════ */
+function renderPills(catId, unitId) {
+  const container = document.getElementById(`${catId}-pills`);
+  if (!container) return;
+  
+  let pillsData = DYNAMIC_PILLS[catId]?.[unitId];
+  if (!pillsData) {
+    const unitLabel = abbr(catId, unitId); 
+    pillsData = [ { l: `1 ${unitLabel}`, v: 1 }, { l: `2 ${unitLabel}`, v: 2 }, { l: `5 ${unitLabel}`, v: 5 } ];
+  }
+  
+  container.innerHTML = pillsData.map(p => `<button class="pill" data-v="${p.v}">${p.l}</button>`).join('');
+
+  container.querySelectorAll('.pill').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const input = document.getElementById(`${catId}-in`);
+      input.value = btn.dataset.v;
+      compute(catId);
+    });
+  });
+}
+
+function buildStandard(catId) {
+  const d  = DATA[catId];
+  const el = document.getElementById('view-' + catId);
+
+  el.innerHTML = `
+    <div class="unit-row">
+      <div class="unit-col"><div class="lbl">From</div>${makeSel(catId+'-from', d.units, d.from)}</div>
+      <button class="swap-btn" id="${catId}-swap" aria-label="Swap">
+        <svg viewBox="0 0 24 24"><path d="M7 16V4M7 4L3 8M7 4l4 4M17 8v12m0 0 4-4m-4 4-4-4"/></svg>
+      </button>
+      <div class="unit-col"><div class="lbl">To</div>${makeSel(catId+'-to', d.units, d.to)}</div>
+    </div>
+    <div class="io-row">
+      <div class="io-box lit">
+        <div class="lbl" id="${catId}-in-lbl">${abbr(catId, d.from)}</div>
+        <input type="number" id="${catId}-in" value="1" min="0" inputmode="decimal" autocomplete="off">
+      </div>
+      <div class="io-box">
+        <div class="lbl" id="${catId}-out-lbl">${abbr(catId, d.to)}</div>
+        <div class="out-val" id="${catId}-out">—</div>
+      </div>
+    </div>
+    <div class="pills" id="${catId}-pills"></div>
+    <button class="guide-btn" onclick="openGuide()">
+      Guide <svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+    </button>`;
+
+  const fromSel = document.getElementById(catId+'-from');
+  const toSel   = document.getElementById(catId+'-to');
+  const input   = document.getElementById(catId+'-in');
+
+  fromSel.addEventListener('change', () => { syncLabels(catId); renderPills(catId, fromSel.value); compute(catId); });
+  toSel.addEventListener('change',   () => { syncLabels(catId); compute(catId); });
+  input.addEventListener('input',    () => compute(catId));
+
+  document.getElementById(catId+'-swap').addEventListener('click', () => {
+    [fromSel.value, toSel.value] = [toSel.value, fromSel.value];
+    syncLabels(catId); renderPills(catId, fromSel.value); compute(catId);
+  });
+
+  renderPills(catId, d.from); compute(catId);
+}
+
+function syncLabels(catId) {
+  document.getElementById(catId+'-in-lbl').textContent  = abbr(catId, document.getElementById(catId+'-from').value);
+  document.getElementById(catId+'-out-lbl').textContent = abbr(catId, document.getElementById(catId+'-to').value);
+}
+
+function compute(catId) {
+  const d   = DATA[catId];
+  const fId = document.getElementById(catId+'-from').value;
+  const tId = document.getElementById(catId+'-to').value;
+  const raw = parseFloat(document.getElementById(catId+'-in').value);
+  const out = document.getElementById(catId+'-out');
+  if (!out) return;
+  if (isNaN(raw)) { out.textContent = '—'; return; }
+  const fu = d.units.find(u => u.id===fId);
+  const tu = d.units.find(u => u.id===tId);
+  if (!fu||!tu) return;
+  out.textContent = fmt((raw * fu.b) / tu.b);
+  out.classList.remove('flash'); void out.offsetWidth; out.classList.add('flash');
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   TEMPERATURE VIEW
+═══════════════════════════════════════════════════════════════════════ */
+function toK(v,u) { if (u==='c') return v+273.15; if (u==='f') return (v-32)*5/9+273.15; return v; }
+function fromK(k,u) { if (u==='c') return k-273.15; if (u==='f') return (k-273.15)*9/5+32; return k; }
+
+function buildTemp() {
+  const el = document.getElementById('view-temp');
+  el.innerHTML = `
+    <div class="unit-col">
+      <div class="lbl">Scale</div>
+      <select id="t-scale"><option value="f">Fahrenheit (°F)</option><option value="c" selected>Celsius (°C)</option></select>
+    </div>
+    <div class="io-box lit" style="flex-shrink:0;">
+      <div class="lbl" id="t-in-lbl">°C</div>
+      <input type="number" id="t-in" value="180" inputmode="decimal" autocomplete="off" style="font-size:40px;">
+    </div>
+    <div class="t-badges" id="t-badges"></div>
+    <button class="guide-btn" onclick="openGuide()">
+      Guide <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><path d="M9 18l6-6-6-6"/></svg>
+    </button>`;
+
+  document.getElementById('t-scale').addEventListener('change', computeTemp);
+  document.getElementById('t-in').addEventListener('input', computeTemp);
+  computeTemp();
+}
+
+function computeTemp() {
+  const scale = document.getElementById('t-scale')?.value;
+  const raw   = parseFloat(document.getElementById('t-in')?.value);
+  const lbl   = { f:'°F', c:'°C' };
+  const name  = { f:'Fahrenheit', c:'Celsius' };
+  
+  if(document.getElementById('t-in-lbl')) document.getElementById('t-in-lbl').textContent = lbl[scale];
+
+  const badgesEl = document.getElementById('t-badges');
+  if (!badgesEl) return;
+  if (isNaN(raw)) { badgesEl.innerHTML = ''; return; }
+
+  const k    = toK(raw, scale);
+  const fmtT = v => (Math.abs(v) >= 1000 ? v.toFixed(0) : v.toFixed(1));
+  const outs = ['f','c'].filter(u => u !== scale);
+
+  badgesEl.innerHTML = outs.map(u => `
+    <div class="t-badge"><div class="t-val">${fmtT(fromK(k,u))}${lbl[u]}</div><div class="lbl">${name[u]}</div></div>
+  `).join('');
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   PANS VIEW
+═══════════════════════════════════════════════════════════════════════ */
+function buildPans() {
+  const el = document.getElementById('view-pans');
+  el.innerHTML = `<div class="pan-scroll"><div class="ref-table">
+      ${PANS.map(p => `
+        <div class="pan-row">
+          <div class="pan-top"><span class="pan-name">${p.n}</span><span class="pan-vol">${p.vol}</span></div>
+          <div class="pan-bot"><span class="pan-dim">${p.us} · ${p.cm}</span><span class="pan-use">${p.use}</span></div>
+        </div>`).join('')}
+    </div></div>`;
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   GUIDE PANEL (PAYWALLED FOR FREE WIDGET)
+═══════════════════════════════════════════════════════════════════════ */
+function populateGuide(tabId) {
+  const el = document.getElementById('view-guide');
+
+  // Dummy data to blur
+  const dummyRows = [
+    { l:'1 tsp', r:'≈ 4–6 g' }, { l:'1 tbsp', r:'≈ 12–15 g' }, 
+    { l:'1 cup flour', r:'≈ 120 g' }, { l:'1 cup sugar', r:'≈ 200 g' }, 
+    { l:'1 stick butter', r:'= 113 g' }
+  ];
+
+  let blurredHTML = `<div class="ref-table">${dummyRows.map(r =>
+    `<div class="ref-row"><span class="ref-l">${r.l}</span><span class="ref-r">${r.r}</span></div>`
+  ).join('')}</div>`;
+
+  el.innerHTML = `
+    <a href="https://joecruose.gumroad.com/l/kitchenconverter_widget" target="_blank" class="locked-container" title="Unlock Pro Features">
+      <div class="blurred-content">
+        ${blurredHTML}
+        <br>
+        ${blurredHTML}
+      </div>
+      <div class="upgrade-overlay">
+        <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+        <span>Unlock Pro Guide</span>
+      </div>
+    </a>`;
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   BOOT
+═══════════════════════════════════════════════════════════════════════ */
+buildStandard('weight');
+buildStandard('volume');
+buildStandard('length');
+buildTemp();
+buildPans();
+
+window.addEventListener('resize', updateSlider);
+setTimeout(updateSlider, 50); 
+</script>
+</body>
+</html>
